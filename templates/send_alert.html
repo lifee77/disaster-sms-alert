@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Send Health Alert</h1>
+<form method="POST">
+    {{ form.hidden_tag() }}
+    {{ form.region.label }} {{ form.region(size=20) }}<br>
+    {{ form.message.label }} {{ form.message(size=50) }}<br>
+    {{ form.submit() }}
+</form>
+{% endblock %}

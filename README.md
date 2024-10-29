@@ -1,4 +1,3 @@
-# disaster-sms-alert
 # SMS-Based Health Alert and Emergency Response System
 
 ## Overview
@@ -12,6 +11,27 @@ This project is a prototype of an **SMS-Based Health Alert and Emergency Respons
 - **Automatic Emergency Response Routing**: Forward emergency requests to healthcare professionals or authorities in the area via SMS or email.
 - **Broadcast Health Education**: Periodically send out health tips, warnings, or first-aid instructions via SMS to educate and inform users.
 - **No Internet Required for Users**: Designed to work over SMS, ensuring accessibility even without internet connectivity.
+
+## Project Structure
+
+
+```
+disaster-sms-alert/
+│
+├── app.py
+├── backend/
+│   ├── __init__.py
+│   ├── models.py
+│   ├── routes.py
+│   ├── forms.py
+│   └── utils.py
+├── templates/
+│   ├── base.html
+│   ├── dashboard.html
+│   └── send_alert.html
+└── config.py
+```
+
 
 ## Technology Stack
 
