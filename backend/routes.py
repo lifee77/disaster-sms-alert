@@ -1,52 +1,61 @@
-from flask import Flask, request, redirect, render_template, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, flash
+from backend.forms import AlertForm
+from backend.models import User, Responder, EmergencyRequest
+from app import db
+from backend.utils import send_sms
 from twilio.twiml.messaging_response import MessagingResponse
-from twilio.rest import Client
-from .models import db, User, EmergencyRequest
-from .forms import AlertForm
-from .utils import forward_emergency_request, send_health_alert
+from flask import current_app as app
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///sms_system.db'
-app.config['SECRET_KEY'] = 'your_secret_key'
-db.init_app(app)
+main = Blueprint('main', __name__)
 
-account_sid = 'your_account_sid'
-auth_token = 'your_auth_token'
-twilio_number = 'your_twilio_number'
-client = Client(account_sid, auth_token)
+@main.route('/')
+def index():
+    return redirect(url_for('main.dashboard'))
 
-@app.route('/sms', methods=['POST'])
-def sms_reply():
-    incoming_msg = request.values.get('Body', '').strip().upper()
-    from_number = request.values.get('From', '')
-    user = User.query.filter_by(phone_number=from_number).first()
+@main.route('/dashboard')
+def dashboard():
+    emergency_requests = EmergencyRequest.query.order_by(EmergencyRequest.timestamp.desc()).all()
+    return render_template('dashboard.html', emergency_requests=emergency_requests)
 
-    if incoming_msg == 'HELP' or incoming_msg == 'EMERGENCY':
-        emergency = EmergencyRequest(user_id=user.id, message=incoming_msg)
-        db.session.add(emergency)
-        db.session.commit()
-        forward_emergency_request(user.region, from_number, incoming_msg)
-        resp = MessagingResponse()
-        resp.message("Your emergency request has been received. Help is on the way.")
-        return str(resp)
-    else:
-        resp = MessagingResponse()
-        resp.message("Invalid command. Send 'HELP' or 'EMERGENCY' for assistance.")
-        return str(resp)
-
-@app.route('/admin')
-def admin_dashboard():
-    return render_template('dashboard.html')
-
-@app.route('/admin/send_alert', methods=['GET', 'POST'])
+@main.route('/send_alert', methods=['GET', 'POST'])
 def send_alert():
     form = AlertForm()
     if form.validate_on_submit():
         region = form.region.data
         message = form.message.data
-        send_health_alert(region, message)
-        return redirect(url_for('admin_dashboard'))
+        users = User.query.filter_by(region=region).all()
+        for user in users:
+            send_sms(user.phone_number, message)
+        flash('Alert sent successfully!', 'success')
+        return redirect(url_for('main.dashboard'))
     return render_template('send_alert.html', form=form)
 
-if __name__ == '__main__':
-    app.run(debug=True)
+@main.route('/sms', methods=['GET', 'POST'])
+def sms_reply():
+    """Respond to incoming SMS with a confirmation and forward to responders."""
+    incoming_msg = request.values.get('Body', '').strip().lower()
+    from_number = request.values.get('From', '')
+    user = User.query.filter_by(phone_number=from_number).first()
+    region = user.region if user else 'Unknown'
+
+    if incoming_msg in ['help', 'emergency']:
+        # Log the emergency request
+        emergency = EmergencyRequest(user_phone=from_number, region=region, message=incoming_msg)
+        db.session.add(emergency)
+        db.session.commit()
+
+        # Forward to responders
+        responders = Responder.query.filter_by(region=region).all()
+        for responder in responders:
+            alert_message = f"Emergency from {from_number} in {region}."
+            send_sms(responder.phone_number, alert_message)
+
+        # Respond to user
+        resp = MessagingResponse()
+        resp.message("Your emergency request has been received. Help is on the way.")
+        return str(resp)
+    else:
+        # Non-emergency message
+        resp = MessagingResponse()
+        resp.message("Unrecognized command. Send 'HELP' or 'EMERGENCY' for assistance.")
+        return str(resp)

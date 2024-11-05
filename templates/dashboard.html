@@ -1,6 +1,28 @@
 {% extends "base.html" %}
+
 {% block content %}
 <h1>Admin Dashboard</h1>
-<a href="{{ url_for('send_alert') }}">Send Health Alert</a>
-<!-- Include stats and recent emergencies -->
+<a href="{{ url_for('main.send_alert') }}" class="btn btn-primary mb-3">Send Health Alert</a>
+
+<h2>Emergency Requests</h2>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>User Phone</th>
+            <th>Region</th>
+            <th>Message</th>
+            <th>Timestamp</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for request in emergency_requests %}
+        <tr>
+            <td>{{ request.user_phone }}</td>
+            <td>{{ request.region }}</td>
+            <td>{{ request.message }}</td>
+            <td>{{ request.timestamp }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}
