@@ -14,4 +14,7 @@
     </div>
     {{ form.submit(class="btn btn-primary") }}
 </form>
+
+<!-- Button to navigate back to the dashboard -->
+<a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>
 {% endblock %}

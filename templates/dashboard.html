@@ -4,6 +4,59 @@
 <h1>Admin Dashboard</h1>
 <a href="{{ url_for('main.send_alert') }}" class="btn btn-primary mb-3">Send Health Alert</a>
 
+<!-- Filter Form -->
+<h2>Filter Emergency Requests</h2>
+<form method="GET" action="{{ url_for('main.dashboard') }}" class="form-inline mb-3">
+    <div class="form-group mx-2">
+        <label for="region" class="mr-2">Region</label>
+        <input type="text" name="region" id="region" class="form-control" placeholder="Enter region">
+    </div>
+    <div class="form-group mx-2">
+        <label for="start_date" class="mr-2">Start Date</label>
+        <input type="date" name="start_date" id="start_date" class="form-control">
+    </div>
+    <div class="form-group mx-2">
+        <label for="end_date" class="mr-2">End Date</label>
+        <input type="date" name="end_date" id="end_date" class="form-control">
+    </div>
+    <button type="submit" class="btn btn-secondary">Filter</button>
+</form>
+
+<!-- Map View -->
+<h2>Map View</h2>
+<div id="map" style="height: 400px; width: 100%;"></div>
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&callback=initMap" async defer></script>
+<script>
+function initMap() {
+    const map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 7,
+        center: { lat: 27.7172, lng: 85.3240 }, // Kathmandu coordinates
+    });
+
+    const userLocations = {{ user_locations | tojson }};
+    const responderLocations = {{ responder_locations | tojson }};
+
+    userLocations.forEach(location => {
+        new google.maps.Marker({
+            position: { lat: location.lat, lng: location.lng },
+            map,
+            title: "User Location",
+            icon: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+        });
+    });
+
+    responderLocations.forEach(location => {
+        new google.maps.Marker({
+            position: { lat: location.lat, lng: location.lng },
+            map,
+            title: "Responder Location",
+            icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
+        });
+    });
+}
+</script>
+
+<!-- Emergency Requests Table -->
 <h2>Emergency Requests</h2>
 <table class="table table-bordered">
     <thead>

@@ -5,6 +5,7 @@ from app import db
 from backend.utils import send_sms
 from twilio.twiml.messaging_response import MessagingResponse
 from flask import current_app as app
+from datetime import datetime
 
 main = Blueprint('main', __name__)
 
@@ -12,10 +13,41 @@ main = Blueprint('main', __name__)
 def index():
     return redirect(url_for('main.dashboard'))
 
-@main.route('/dashboard')
+@main.route('/dashboard', methods=['GET'])
 def dashboard():
-    emergency_requests = EmergencyRequest.query.order_by(EmergencyRequest.timestamp.desc()).all()
-    return render_template('dashboard.html', emergency_requests=emergency_requests)
+    region = request.args.get('region')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    query = EmergencyRequest.query
+
+    if region:
+        query = query.filter(EmergencyRequest.region.ilike(f"%{region}%"))
+    if start_date:
+        query = query.filter(EmergencyRequest.timestamp >= datetime.strptime(start_date, "%Y-%m-%d"))
+    if end_date:
+        query = query.filter(EmergencyRequest.timestamp <= datetime.strptime(end_date, "%Y-%m-%d"))
+
+    emergency_requests = query.order_by(EmergencyRequest.timestamp.desc()).all()
+
+    # Example data
+    user_locations = [
+        {'lat': 27.7172, 'lng': 85.3240},
+        {'lat': 27.7000, 'lng': 85.3333}
+    ]
+    responder_locations = [
+        {'lat': 27.7172, 'lng': 85.3240},
+        {'lat': 27.7000, 'lng': 85.3333}
+    ]
+    emergency_requests = [
+        {'user_phone': '1234567890', 'region': 'Kathmandu', 'message': 'Help needed', 'timestamp': datetime.now()},
+        {'user_phone': '0987654321', 'region': 'Lalitpur', 'message': 'Emergency', 'timestamp': datetime.now()}
+    ]
+    return render_template('dashboard.html', 
+                        user_locations=user_locations, 
+                        responder_locations=responder_locations, 
+                        emergency_requests=emergency_requests)
+
 
 @main.route('/send_alert', methods=['GET', 'POST'])
 def send_alert():
